@@ -34,10 +34,10 @@ private:
 
 	void initialize();
 	int InitSocket(SOCKET&,char*, char*, addrinfo,addrinfo*);
-	int parsePort(char*);
+	void getPortFromResponse(char*, int[]);
 	void passiveMode();
 	void activeMode();
-
+	void getAuthentication();
 public:
 	FTP();
 	FTP(char* srvrIP);

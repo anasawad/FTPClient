@@ -77,10 +77,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="FTP.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="main`.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Output.out" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="FTP.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -2,20 +2,18 @@
 #define FTP_CPP_
 #include "FTP.h"
 
-
+/*constructor ya Anas :P :D*/
 FTP::FTP()
 {
 	connectSocket = INVALID_SOCKET;
 	dataSocket = INVALID_SOCKET;
-	//rcvdBuffer = "";
 	initialize();
 	srvrIP = "127.0.0.1";
 	InitSocket(connectSocket,srvrIP,FTP_PORT,hints, result);
-
-	u_long iMode = 1;
-	ioctlsocket(connectSocket,FIONBIO, &iMode);
+	getAuthentication();
 }
 
+/*da ba2a constructor brdo ya Anas :P :D*/
 FTP::FTP(char* srvr)
 {
 	connectSocket = INVALID_SOCKET;
@@ -23,7 +21,9 @@ FTP::FTP(char* srvr)
 	initialize();
 	srvrIP = srvr;
 	InitSocket(connectSocket,srvrIP,FTP_PORT,hints, result);
+	getAuthentication();
 }
+
 
 void FTP::initialize()
 {
@@ -80,60 +80,63 @@ int FTP::InitSocket(SOCKET &connectSocket, char* serverIP, char* portNumber, add
 		WSACleanup();
 		return 1;
 	}
+
+	u_long iMode = 1;
+	ioctlsocket(connectSocket,FIONBIO, &iMode);
+
 	return iResult;
 }
 
 
-int FTP::parsePort(char* data)
+void FTP::getPortFromResponse(char* address, int port[])
 {
-	int n, sz = strlen(data), count =0, i, j;
+	int n, sz = strlen(address), count =0, i, j;
 	char* n1 = new char[5];
 	char* n2 = new char[5];
 
-	//i = find(data, data+sz, '>');
 
 	//192,168,1,1,80,80
-	for(i = 0 ; i < sz ; i++)
+	for(i = 0 ; i < sz ; i++)//go to the third '4'
 	{
-		if(data[i] != ',' && count > 3)
+		if(address[i] != ',' && count > 3)
 		{
 			break;
 		}	
 
-		if(data[i] == ',')
+		if(address[i] == ',')
 			count++;
 
 	}
 
 	j=0;
-	while(data[i] != ',')
-		n1[j++] = data[i++];
+	while(address[i] != ',')//getting first port number
+		n1[j++] = address[i++];
 
 	n1[j] = '\0';
 
 	j=0;
 	i++;
 
-	while(data[i] != ')')
-		n2[j++] = data[i++];
+	while(address[i] != ')')//getting second port number
+		n2[j++] = address[i++];
 	n2[j] = '\0';
 
 
-	int port[2];
+	
 	port[0] = atoi(n1);
 	port[1] = atoi(n2);
-
-	n = port[0]*256 + port[1];
-	return n;
 }
 
+/*
+executing commands
+*/
 void FTP::cmdExecuter(const char* cmd)
 {
 	send(connectSocket, cmd, (int)strlen(cmd), 0 );
 	Sleep(800);
 
 
-	if(strncmp(cmd, "RETR", 4) == 0)
+	if(strncmp(cmd, "RETR", 4) == 0 || strncmp(cmd, "retr", 4) == 0 )
 	{
 		
 		do
@@ -160,21 +163,56 @@ void FTP::cmdExecuter(const char* cmd)
 	}
 	
 	
-	if(strncmp(cmd, "PASV", 4) == 0)
+	if(strncmp(cmd, "PASV", 4) == 0 || strncmp(cmd, "pasv", 4) == 0)
 	{
 		passiveMode();
 	}
 }
 
+/*
+initializes the dataSocket for exchanging data
+*/
 void FTP::passiveMode()
 {
 	char* newPort = new char[4];
-	iResult = parsePort(rcvdBuffer);
+	int port[2];
+	getPortFromResponse(rcvdBuffer, port);
+	iResult = port[0]*256 + port[1];
 	newPort = itoa(iResult,newPort,10);
 
 	InitSocket(dataSocket,srvrIP,newPort,hints, result);	
 }
 
+/*gets user and password to connect to server*/
+void FTP::getAuthentication()
+{
+	char tmp[DEFAULT_BUFLEN];
+	char tmp2[DEFAULT_BUFLEN];
+	char* cmd;
+
+	//---------------------------------//
+	printf("Username: ");
+	scanf("%s", &tmp);
+
+	cmd = "USER ";
+	strcpy(tmp2, cmd);
+	strcat(tmp2, tmp);
+	strcat(tmp2, "\r\n");
+
+	cmdExecuter(tmp2);
+	//---------------------------------//
+
+	printf("Password: ");
+	scanf("%s", tmp);
+	cmd = "PASS ";
+	
+	strcpy(tmp2, cmd);
+	strcat(tmp2, tmp);
+	strcat(tmp2, "\r\n");
+
+	cmdExecuter(tmp2);
+	//---------------------------------//
+}
 
 FTP::~FTP()
 {
