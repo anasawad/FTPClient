@@ -82,7 +82,8 @@
     <ClCompile Include="main`.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Output.out" />
+    <None Include="u.txt" />
+    <None Include="u2.txt" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="FTP.h" />

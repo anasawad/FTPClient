@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <algorithm>
+#include <fstream>
 
 #pragma comment (lib, "Ws2_32.lib")
 #pragma comment (lib, "Mswsock.lib")
@@ -24,26 +25,33 @@ private:
 	char *sendBuffer;	
 	char *srvrIP;
 	int iResult;
+	bool PASV;
+	char *newPort;
+
+	struct sockaddr_storage their_addr;
+    socklen_t addr_size;
 
 	WSADATA			wsaData;
-	SOCKET			connectSocket;// = INVALID_SOCKET;
-	SOCKET			dataSocket;// = INVALID_SOCKET;
+	SOCKET			connectSocket;
+	SOCKET			tmpSocket;
+	SOCKET			*sendSocket;
 	struct addrinfo *result;//= NULL;
 	struct addrinfo	hints;
 
 
 	void initialize();
 	int InitSocket(SOCKET&,char*, char*, addrinfo,addrinfo*);
-	void getPortFromResponse(char*, int[]);
+	void getPortFromMsg(char*, int[]);
 	void passiveMode();
 	void activeMode();
 	void getAuthentication();
+	void uploadFile();
+	char* getFilename(char* rcvd);
 public:
 	FTP();
 	FTP(char* srvrIP);
-	void cmdExecuter(const char*);
+	void cmdExecuter(char*);
 	~FTP();
-
 };
 
 #endif
