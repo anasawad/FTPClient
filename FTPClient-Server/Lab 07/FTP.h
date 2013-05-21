@@ -51,6 +51,7 @@ private:
 	void downloadFile();
 	char* getFilename(char* rcvd);
 	char* getFileAddress(char* rcvd);
+	char* getFileExtension(char* rcvd);
 public:
 	FTP();
 	FTP(char* srvrIP);

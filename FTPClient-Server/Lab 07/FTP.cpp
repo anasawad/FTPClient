@@ -86,8 +86,8 @@ int FTP::InitSocket(SOCKET &connectSocket, char* serverIP, char* portNumber, add
 		return 1;
 	}
 
-	//u_long iMode = 1;
-	//ioctlsocket(connectSocket,FIONBIO, &iMode);
+	u_long iMode = 1;
+	ioctlsocket(connectSocket,FIONBIO, &iMode);
 
 	return iResult;
 }
@@ -253,6 +253,19 @@ char* FTP::getFileAddress(char *rcvd)
 	return res;
 }
 
+char* FTP::getFileExtension(char* rcvd)
+{
+	int i=0, j=0;
+	char* ext = new char[strlen(rcvd)];
+	while(rcvd[i++] != '.');
+
+	while(rcvd[i] != '\r' && rcvd[i] != '\0')
+		ext[j++] = rcvd[i++];
+
+	ext[j] = '\0';
+
+	return ext;
+}
 /*
 getting file name from RETR filename command, make a new file with this name locally
 and write data inside it
@@ -261,8 +274,14 @@ void FTP::downloadFile()
 {
 	char* addr = getFileAddress(sendBuffer);
 	char* name = getFilename(addr);
+	char* ext = getFileExtension(name);
 	FILE *f;
-	f = fopen(name, "w");
+	
+	if(!strcmp(ext, "pcx") ||  !strcmp(ext, "xlsx"))
+		f = fopen(name, "wb");
+	else
+		f = fopen(name, "w");
+
 	if(mode == SEND_MODE::ACTV)
 		*sendSocket = accept(tmpSocket, (struct sockaddr *)&their_addr, &addr_size);
 
@@ -295,8 +314,15 @@ void FTP::uploadFile()
 {
 	char* addr = getFileAddress(sendBuffer);//
 	char* name = getFilename(addr);
+	char *ext = getFileExtension(name);
+	bool pcx = !strcmp(ext, "pcx") ||  !strcmp(ext, "xlsx");
 	FILE *f;
-	f = fopen(addr, "r");
+
+	if(pcx)
+		f = fopen(name, "rb");
+	else
+		f = fopen(name, "r");
+
 	if(mode = SEND_MODE::ACTV)
 		*sendSocket = accept(tmpSocket, (struct sockaddr *)&their_addr, &addr_size);
 
@@ -313,7 +339,11 @@ void FTP::uploadFile()
 	char* tmp = new char[i];
 	fclose(f);
 
-	f = fopen(addr, "r");
+	if(pcx)
+		f = fopen(name, "rb");
+	else
+		f = fopen(name, "r");
+
 	fread(tmp, sizeof(char), i, f);
 	tmp[i] = '\0';
 
@@ -329,14 +359,14 @@ initializes the sendSocket for exchanging data
 void FTP::passiveMode()
 {
 	//char* newPort = new char[4];
-	if(newPort == NULL)
-	{
+	//if(newPort == NULL)
+	//{
 		newPort = new char[5];
 		int port[2];
 		getPortFromMsg(rcvdBuffer, port);
 		iResult = port[0]*256 + port[1];
 		newPort = itoa(iResult,newPort,10);
-	}
+	//}
 	sendSocket = new SOCKET;
 	InitSocket(*sendSocket,srvrIP,newPort,hints, result);	
 }
