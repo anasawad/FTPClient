@@ -2,7 +2,7 @@
 #define FTP_CPP_
 #include "FTP.h"
 
-/*constructor ya Anas :P :D*/
+
 FTP::FTP()
 {
 	newPort = NULL;
@@ -15,7 +15,6 @@ FTP::FTP()
 	getAuthentication();
 }
 
-/*da ba2a constructor brdo ya Anas :P :D*/
 FTP::FTP(char* srvr)
 {
 	connectSocket = INVALID_SOCKET;
@@ -26,7 +25,7 @@ FTP::FTP(char* srvr)
 	getAuthentication();
 }
 
-
+/*Initialize WinSock2 library */
 void FTP::initialize()
 {
 	// Initialize Winsock
@@ -128,7 +127,7 @@ void FTP::getPortFromMsg(char* address, int port[])
 	n2[j] = '\0';
 
 
-	
+
 	port[0] = atoi(n1);
 	port[1] = atoi(n2);
 }
@@ -163,7 +162,7 @@ void FTP::cmdExecuter(char* cmd)
 
 	if(!strncmp(cmd, "list", 4) || !strncmp(cmd, "nlst", 4))
 	{
-		
+
 		if(mode == SEND_MODE::ACTV)
 			*sendSocket = accept(tmpSocket, (struct sockaddr *)&their_addr, &addr_size);
 
@@ -186,7 +185,7 @@ void FTP::cmdExecuter(char* cmd)
 	else
 	{
 		iResult = recv(connectSocket, rcvdBuffer, DEFAULT_BUFLEN, 0);
-	
+
 		if(iResult > 0)
 			rcvdBuffer[iResult] = '\0', printf("%s\n", rcvdBuffer);
 	}
@@ -196,7 +195,7 @@ void FTP::cmdExecuter(char* cmd)
 	//else if(mode == SEND_MODE::ACTV)
 	//	activeMode();
 	//
-	
+
 	if(!strncmp(cmd, "pasv", 4))
 	{
 		mode = SEND_MODE::PASV;
@@ -210,7 +209,7 @@ void FTP::cmdExecuter(char* cmd)
 }
 
 /*
-get file name from addresse
+get file name from addressee
 Directory\subDirectory\filename
 */
 
@@ -224,7 +223,7 @@ char* FTP::getFilename(char* rcvd)
 		&& rcvd[j] != '/'
 		)
 		j--;
-	
+
 	j++;//begin after last '\\'
 	while(rcvd[j] != '\r' && rcvd[j] != '\0')
 		res[i++] = rcvd[j++];
@@ -276,7 +275,7 @@ void FTP::downloadFile()
 	char* name = getFilename(addr);
 	char* ext = getFileExtension(name);
 	FILE *f;
-	
+
 	if(!strcmp(ext, "pcx") ||  !strcmp(ext, "xlsx"))
 		f = fopen(name, "wb");
 	else
@@ -285,7 +284,7 @@ void FTP::downloadFile()
 	if(mode == SEND_MODE::ACTV)
 		*sendSocket = accept(tmpSocket, (struct sockaddr *)&their_addr, &addr_size);
 
-	
+
 	int sz = 0;
 	do
 	{
@@ -326,9 +325,9 @@ void FTP::uploadFile()
 	if(mode = SEND_MODE::ACTV)
 		*sendSocket = accept(tmpSocket, (struct sockaddr *)&their_addr, &addr_size);
 
-	
+
 	int i=0;
-	
+
 	while(!feof(f))
 	{
 		getc(f);
@@ -358,40 +357,28 @@ initializes the sendSocket for exchanging data
 */
 void FTP::passiveMode()
 {
-	//char* newPort = new char[4];
-	//if(newPort == NULL)
-	//{
-		newPort = new char[5];
-		int port[2];
-		getPortFromMsg(rcvdBuffer, port);
-		iResult = port[0]*256 + port[1];
-		newPort = itoa(iResult,newPort,10);
-	//}
+	newPort = new char[5];
+	int port[2];
+	getPortFromMsg(rcvdBuffer, port);
+	iResult = port[0]*256 + port[1];
+	newPort = itoa(iResult,newPort,10);
 	sendSocket = new SOCKET;
 	InitSocket(*sendSocket,srvrIP,newPort,hints, result);	
 }
- 
+
 void FTP::activeMode()
 {
-	//char* newPort = new char[4];
-	
-//	if(newPort == NULL)
-	//{
-		newPort = new char[5];
-		int port[2];
-		getPortFromMsg(sendBuffer, port);
-		iResult = port[0]*256 + port[1];
-		newPort = itoa(iResult,newPort,10);
-		getaddrinfo(srvrIP, newPort, &hints, &result);
-		tmpSocket = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
-	//}
-
-	
-
+	newPort = new char[5];
+	int port[2];
+	getPortFromMsg(sendBuffer, port);
+	iResult = port[0]*256 + port[1];
+	newPort = itoa(iResult,newPort,10);
+	getaddrinfo(srvrIP, newPort, &hints, &result);
+	tmpSocket = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
 	bind(tmpSocket, result->ai_addr, result->ai_addrlen);
 	listen(tmpSocket, 5);
 	addr_size = sizeof (their_addr);
-    //*sendSocket = accept(tmp, (struct sockaddr *)&their_addr, &addr_size);
+	//*sendSocket = accept(tmp, (struct sockaddr *)&their_addr, &addr_size);
 }
 
 /*gets user and password to connect to server*/
@@ -416,7 +403,7 @@ void FTP::getAuthentication()
 	printf("Password: ");
 	scanf("%s", tmp);
 	cmd = "PASS ";
-	
+
 	strcpy(tmp2, cmd);
 	strcat(tmp2, tmp);
 	strcat(tmp2, "\r\n");
