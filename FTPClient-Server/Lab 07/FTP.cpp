@@ -375,8 +375,8 @@ void FTP::activeMode()
 {
 	//char* newPort = new char[4];
 	
-	if(newPort == NULL)
-	{
+//	if(newPort == NULL)
+	//{
 		newPort = new char[5];
 		int port[2];
 		getPortFromMsg(sendBuffer, port);
@@ -384,7 +384,7 @@ void FTP::activeMode()
 		newPort = itoa(iResult,newPort,10);
 		getaddrinfo(srvrIP, newPort, &hints, &result);
 		tmpSocket = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
-	}
+	//}
 
 	
 
