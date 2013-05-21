@@ -6,7 +6,7 @@
 FTP::FTP()
 {
 	newPort = NULL;
-	PASV = true;
+	mode = SEND_MODE::NOT_ASSIGNED;
 	connectSocket = INVALID_SOCKET;
 	sendSocket = new SOCKET();
 	initialize();
@@ -64,7 +64,7 @@ int FTP::InitSocket(SOCKET &connectSocket, char* serverIP, char* portNumber, add
 			return 1;
 		}
 		// Connect to server.
-		if(PASV)
+		if(mode != SEND_MODE::ACTV)
 		{
 			iResult = connect( connectSocket, ptr->ai_addr, (int)ptr->ai_addrlen);
 			if (iResult == SOCKET_ERROR)
@@ -144,18 +144,27 @@ void FTP::cmdExecuter(char* cmd)
 	{
 		cmd[i] = tolower(cmd[i]);
 	}
-	
-	sendBuffer = cmd;
 
+	sendBuffer = new char[len];
+	sendBuffer = strcpy(sendBuffer, cmd);
+
+	//making stor command wihtout my path
+	if(!strncmp(cmd, "stor", 4) )
+	{
+		int j=strlen(cmd);
+		while(cmd[j--] != '\\'); //last '\'
+		j++;
+		while(cmd[j] != ' ')
+			cmd[j--] = ' ';
+	}
 
 	send(connectSocket, cmd, len, 0);
 	Sleep(800);
 
-
-	if( !strncmp(cmd, "retr", 4) || !strncmp(cmd, "list", 4) || !strncmp(cmd, "nlst", 4))
+	if(!strncmp(cmd, "list", 4) || !strncmp(cmd, "nlst", 4))
 	{
 		
-		if(!PASV)
+		if(mode == SEND_MODE::ACTV)
 			*sendSocket = accept(tmpSocket, (struct sockaddr *)&their_addr, &addr_size);
 
 
@@ -164,50 +173,72 @@ void FTP::cmdExecuter(char* cmd)
 			iResult = recv(*sendSocket, rcvdBuffer, DEFAULT_BUFLEN, 0); 
 
 			if(iResult > 0)
-			{
-				rcvdBuffer[iResult] = '\0';
-				printf("%s", rcvdBuffer);
-			}
+				rcvdBuffer[iResult] = '\0', printf("%s", rcvdBuffer);
+
 		}while(iResult > 0);
 
 		printf("\n");
 	}
+	else if(!strncmp(cmd, "retr", 4) )
+		downloadFile();
 	else if(!strncmp(cmd, "stor", 4) )
-	{
 		uploadFile();
-	}
 	else
 	{
 		iResult = recv(connectSocket, rcvdBuffer, DEFAULT_BUFLEN, 0);
 	
 		if(iResult > 0)
-		{
-			rcvdBuffer[iResult] = '\0';
-			printf("%s\n", rcvdBuffer);
-		}
+			rcvdBuffer[iResult] = '\0', printf("%s\n", rcvdBuffer);
 	}
-	
 
-
-	
+	//if(mode == SEND_MODE::PASV)
+	//	passiveMode();
+	//else if(mode == SEND_MODE::ACTV)
+	//	activeMode();
+	//
 	
 	if(!strncmp(cmd, "pasv", 4))
 	{
-		PASV = true;
+		mode = SEND_MODE::PASV;
 		passiveMode();
 	}
 	else if(!strncmp(cmd, "port", 4) )
 	{
-		PASV = false;
+		mode = SEND_MODE::ACTV;
 		activeMode();
 	}
 }
 
 /*
-get file name from STOR command
-STOR filename\r\n
+get file name from addresse
+Directory\subDirectory\filename
 */
+
 char* FTP::getFilename(char* rcvd)
+{
+	int i=0, j =strlen(rcvd);
+	char* res = new char[j];
+
+	while(rcvd[j] != '\\' //to last '\' (STOR Dirname\filename)
+		&& rcvd[j] != ' ' // or got space (STOR filename)
+		&& rcvd[j] != '/'
+		)
+		j--;
+	
+	j++;//begin after last '\\'
+	while(rcvd[j] != '\r' && rcvd[j] != '\0')
+		res[i++] = rcvd[j++];
+
+	res[i] = '\0';
+	return res;
+}
+
+/*
+get the whole file address from STOR, RETR commands
+(STOR || RETR) filename\r\n
+e.g. RETR boda\anas\morsy\shika.txt
+*/
+char* FTP::getFileAddress(char *rcvd)
 {
 	int i=0, j =0;
 	char* res = new char[strlen(rcvd)];
@@ -222,12 +253,51 @@ char* FTP::getFilename(char* rcvd)
 	return res;
 }
 
+/*
+getting file name from RETR filename command, make a new file with this name locally
+and write data inside it
+*/
+void FTP::downloadFile()
+{
+	char* addr = getFileAddress(sendBuffer);
+	char* name = getFilename(addr);
+	FILE *f;
+	f = fopen(name, "w");
+	if(mode == SEND_MODE::ACTV)
+		*sendSocket = accept(tmpSocket, (struct sockaddr *)&their_addr, &addr_size);
+
+	
+	int sz = 0;
+	do
+	{
+		iResult = recv(*sendSocket, rcvdBuffer, DEFAULT_BUFLEN, 0); 
+
+		if(iResult > 0)
+		{
+			//sz+=iResult;
+			rcvdBuffer[iResult] = '\0';
+			printf("%s", rcvdBuffer);
+
+			fwrite(rcvdBuffer, sizeof(char), iResult, f);
+		}
+
+	}while(iResult > 0);
+
+	printf("\n");
+
+	fclose(f);
+}
+
+/*
+getting file name from STOR filename command and upload it
+*/
 void FTP::uploadFile()
 {
-	char* name = getFilename(sendBuffer);
+	char* addr = getFileAddress(sendBuffer);//
+	char* name = getFilename(addr);
 	FILE *f;
-	f = fopen(name, "r");
-	if(!PASV)
+	f = fopen(addr, "r");
+	if(mode = SEND_MODE::ACTV)
 		*sendSocket = accept(tmpSocket, (struct sockaddr *)&their_addr, &addr_size);
 
 	
@@ -243,13 +313,16 @@ void FTP::uploadFile()
 	char* tmp = new char[i];
 	fclose(f);
 
-	f = fopen(name, "r");
+	f = fopen(addr, "r");
 	fread(tmp, sizeof(char), i, f);
 	tmp[i] = '\0';
+
+	//uploading to FTP
 	send(*sendSocket, tmp, i, 0);
 
 	fclose(f);
 }
+
 /*
 initializes the sendSocket for exchanging data
 */
@@ -264,6 +337,7 @@ void FTP::passiveMode()
 		iResult = port[0]*256 + port[1];
 		newPort = itoa(iResult,newPort,10);
 	}
+	sendSocket = new SOCKET;
 	InitSocket(*sendSocket,srvrIP,newPort,hints, result);	
 }
  

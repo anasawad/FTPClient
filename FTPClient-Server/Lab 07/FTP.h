@@ -15,8 +15,10 @@
 #pragma comment (lib, "Mswsock.lib")
 #pragma comment (lib, "AdvApi32.lib")
 
-#define DEFAULT_BUFLEN	512
+#define DEFAULT_BUFLEN	100000
 #define FTP_PORT		"21"
+
+enum SEND_MODE{ACTV, PASV, NOT_ASSIGNED};
 
 class FTP
 {
@@ -25,7 +27,7 @@ private:
 	char *sendBuffer;	
 	char *srvrIP;
 	int iResult;
-	bool PASV;
+	SEND_MODE mode;
 	char *newPort;
 
 	struct sockaddr_storage their_addr;
@@ -46,7 +48,9 @@ private:
 	void activeMode();
 	void getAuthentication();
 	void uploadFile();
+	void downloadFile();
 	char* getFilename(char* rcvd);
+	char* getFileAddress(char* rcvd);
 public:
 	FTP();
 	FTP(char* srvrIP);
